@@ -1,0 +1,71 @@
+1、调整同时打开文件数量
+
+ulimit -n 20480
+2、TCP最大连接数（somaxconn）
+
+echo 10000 > /proc/sys/net/core/somaxconn
+3、TCP连接立即回收、回用（recycle、reuse）
+
+echo 1 > /proc/sys/net/ipv4/tcp_tw_reuse
+echo 1 > /proc/sys/net/ipv4/tcp_tw_recycle
+
+ 
+使用：sysctl -p 生效
+
+
+
+二、nginx层面
+修改nginx配置文件，nginx.conf
+增加 work_rlimit_nofile 和 worker_connections 数量，并禁用  keepalive_timeout 。
+
+复制代码
+ 
+worker_processes  1;
+worker_rlimit_nofile 20000;
+
+events {
+    use epoll;
+    worker_connections 20000;
+    multi_accept on;
+}
+
+http {
+　　keepalive_timeout 0;
+}
+ 
+复制代码
+ 
+
+ 重启nginx
+
+/usr/local/nginx/sbin/nginx -s reload
+使用ab压力测试
+
+ab -c 10000 -n 150000 http://127.0.0.1/index.html
+测试结果：
+ 
+
+
+ 
+
+
+/**********************************************/
+第二进阶篇
+nginx配置 
+
+server{
+      client_body_buffer_size 8k;
+}
+
+
+/*****************************************************/
+进阶三：
+accept_mutex
+由于我们在NGINX中配置了多个workers，因此我们还应配置影响worker的相关指令。 events区域下accept_mutex参数将使每个可用的worker进程逐个接受新连接。 默认情况下，该标志设置为on。 如：
+
+events {
+     accept_mutex on;
+}
+
+/*****************************************/
+
